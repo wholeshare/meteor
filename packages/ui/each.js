@@ -360,7 +360,7 @@ UI.Each = Component.extend({
   rendered: function () {
     var self = this;
 
-    var cursor = self.get();
+    var cursor = toCursorLike(findComponentWithProp('data', self).data);
 
     var content =
           (typeof self.content === 'function' ?

@@ -10,7 +10,7 @@
 // - BUG? If you queue moves does the bug "fixed" by 08d32d2209b643fb2bcd192 still happen?
 // - Test on all browsers, including mobile.
 
-$.fx.speeds._default = 2000;
+$.fx.speeds._default = 300;
 
 var apply = function (el, events) {
   var animateIn = function (n, parent, next, onComplete) {

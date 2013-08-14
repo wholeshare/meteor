@@ -77,15 +77,13 @@ var activateInput = function (input) {
 
 ////////// Lists //////////
 
-Template.lists.loading = function () {
-  return !listsHandle.ready();
-};
-
-Template.lists.lists = function () {
-  return Lists.find({}, {sort: {name: 1}});
-};
-
-Template.lists.events({
+Template.lists({
+  loading: function () {
+    return !listsHandle.ready();
+  },
+  lists: function () {
+    return Lists.find({}, {sort: {name: 1}});
+  },
   'mousedown .list': function (evt) { // select list
     Router.setList(this._id);
   },
@@ -97,11 +95,21 @@ Template.lists.events({
     Session.set('editing_listname', this._id);
     Deps.flush(); // force DOM redraw, so we can focus the edit field
     activateInput(tmpl.find("#list-name-input"));
+  },
+  selected: function () {
+    return Session.equals('list_id', this._id) ? 'selected' : '';
+  },
+  name_class: function () {
+    return this.name ? '' : 'empty';
+  },
+  editing: function () {
+    return Session.equals('editing_listname', this._id);
   }
 });
 
+
 // Attach events to keydown, keyup, and blur on "New list" input box.
-Template.lists.events(okCancelEvents(
+Template.lists(okCancelEvents(
   '#new-list',
   {
     ok: function (text, evt) {
@@ -111,7 +119,7 @@ Template.lists.events(okCancelEvents(
     }
   }));
 
-Template.lists.events(okCancelEvents(
+Template.lists(okCancelEvents(
   '#list-name-input',
   {
     ok: function (value) {
@@ -123,29 +131,33 @@ Template.lists.events(okCancelEvents(
     }
   }));
 
-Template.lists.selected = function () {
-  return Session.equals('list_id', this._id) ? 'selected' : '';
-};
-
-Template.lists.name_class = function () {
-  return this.name ? '' : 'empty';
-};
-
-Template.lists.editing = function () {
-  return Session.equals('editing_listname', this._id);
-};
-
 ////////// Todos //////////
 
-Template.todos.loading = function () {
-  return todosHandle && !todosHandle.ready();
-};
+Template.todos({
+  loading: function () {
+    return todosHandle && !todosHandle.ready();
+  },
+  any_list_selected: function () {
+    return !Session.equals('list_id', null);
+  },
+  todos: function () {
+    // Determine which todos to display in main pane,
+    // selected based on list_id and tag_filter.
 
-Template.todos.any_list_selected = function () {
-  return !Session.equals('list_id', null);
-};
+    var list_id = Session.get('list_id');
+    if (!list_id)
+      return {};
 
-Template.todos.events(okCancelEvents(
+    var sel = {list_id: list_id};
+    var tag_filter = Session.get('tag_filter');
+    if (tag_filter)
+      sel.tags = tag_filter;
+
+    return Todos.find(sel, {sort: {timestamp: 1}});
+  }
+});
+
+Template.todos(okCancelEvents(
   '#new-todo',
   {
     ok: function (text, evt) {
@@ -161,66 +173,41 @@ Template.todos.events(okCancelEvents(
     }
   }));
 
-Template.todos.todos = function () {
-  // Determine which todos to display in main pane,
-  // selected based on list_id and tag_filter.
-
-  var list_id = Session.get('list_id');
-  if (!list_id)
-    return {};
-
-  var sel = {list_id: list_id};
-  var tag_filter = Session.get('tag_filter');
-  if (tag_filter)
-    sel.tags = tag_filter;
-
-  return Todos.find(sel, {sort: {timestamp: 1}});
-};
-
-Template.todo_item.tag_objs = function () {
-  var todo_id = this._id;
-  return _.map(this.tags || [], function (tag) {
-    return {todo_id: todo_id, tag: tag};
-  });
-};
-
-Template.todo_item.done_class = function () {
-  return this.done ? 'done' : '';
-};
-
-Template.todo_item.done_checkbox = function () {
-  return this.done ? 'checked="checked"' : '';
-};
-
-Template.todo_item.editing = function () {
-  return Session.equals('editing_itemname', this._id);
-};
-
-Template.todo_item.adding_tag = function () {
-  return Session.equals('editing_addtag', this._id);
-};
-
-Template.todo_item.events({
+Template.todo_item({
+  tag_objs: function () {
+    var todo_id = this._id;
+    return _.map(this.tags || [], function (tag) {
+      return {todo_id: todo_id, tag: tag};
+    });
+  },
+  done_class: function () {
+    return this.done ? 'done' : '';
+  },
+  done_checkbox: function () {
+    return this.done ? 'checked="checked"' : '';
+  },
+  editing: function () {
+    return Session.equals('editing_itemname', this._id);
+  },
+  adding_tag: function () {
+    return Session.equals('editing_addtag', this._id);
+  },
   'click .check': function () {
     Todos.update(this._id, {$set: {done: !this.done}});
   },
-
   'click .destroy': function () {
     Todos.remove(this._id);
   },
-
   'click .addtag': function (evt, tmpl) {
     Session.set('editing_addtag', this._id);
     Deps.flush(); // update DOM before focus
     activateInput(tmpl.find("#edittag-input"));
   },
-
   'dblclick .display .todo-text': function (evt, tmpl) {
     Session.set('editing_itemname', this._id);
     Deps.flush(); // update DOM before focus
     activateInput(tmpl.find("#todo-input"));
   },
-
   'click .remove': function (evt) {
     var tag = this.tag;
     var id = this.todo_id;
@@ -233,7 +220,7 @@ Template.todo_item.events({
   }
 });
 
-Template.todo_item.events(okCancelEvents(
+Template.todo_item(okCancelEvents(
   '#todo-input',
   {
     ok: function (value) {
@@ -245,7 +232,7 @@ Template.todo_item.events(okCancelEvents(
     }
   }));
 
-Template.todo_item.events(okCancelEvents(
+Template.todo_item(okCancelEvents(
   '#edittag-input',
   {
     ok: function (value) {
@@ -259,37 +246,34 @@ Template.todo_item.events(okCancelEvents(
 
 ////////// Tag Filter //////////
 
-// Pick out the unique tags from all todos in current list.
-Template.tag_filter.tags = function () {
-  var tag_infos = [];
-  var total_count = 0;
+Template.tag_filter({
+  // Pick out the unique tags from all todos in current list.
+  tags: function () {
+    var tag_infos = [];
+    var total_count = 0;
 
-  Todos.find({list_id: Session.get('list_id')}).forEach(function (todo) {
-    _.each(todo.tags, function (tag) {
-      var tag_info = _.find(tag_infos, function (x) { return x.tag === tag; });
-      if (! tag_info)
-        tag_infos.push({tag: tag, count: 1});
-      else
-        tag_info.count++;
+    Todos.find({list_id: Session.get('list_id')}).forEach(function (todo) {
+      _.each(todo.tags, function (tag) {
+        var tag_info = _.find(tag_infos, function (x) { return x.tag === tag; });
+        if (! tag_info)
+          tag_infos.push({tag: tag, count: 1});
+        else
+          tag_info.count++;
+      });
+      total_count++;
     });
-    total_count++;
-  });
 
-  tag_infos = _.sortBy(tag_infos, function (x) { return x.tag; });
-  tag_infos.unshift({tag: null, count: total_count});
+    tag_infos = _.sortBy(tag_infos, function (x) { return x.tag; });
+    tag_infos.unshift({tag: null, count: total_count});
 
-  return tag_infos;
-};
-
-Template.tag_filter.tag_text = function () {
-  return this.tag || "All items";
-};
-
-Template.tag_filter.selected = function () {
-  return Session.equals('tag_filter', this.tag) ? 'selected' : '';
-};
-
-Template.tag_filter.events({
+    return tag_infos;
+  },
+  tag_text: function () {
+    return this.tag || "All items";
+  },
+  selected: function () {
+    return Session.equals('tag_filter', this.tag) ? 'selected' : '';
+  },
   'mousedown .tag': function () {
     if (Session.equals('tag_filter', this.tag))
       Session.set('tag_filter', null);

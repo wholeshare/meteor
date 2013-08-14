@@ -1,5 +1,5 @@
 
-var findComponentWithProp = function (id, comp) {
+/*xcxc var*/ findComponentWithProp = function (id, comp) {
   while (comp) {
     if (id in comp)
       return comp;

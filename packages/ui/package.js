@@ -17,6 +17,7 @@ Package.on_use(function (api) {
                  'fields.js',
                  'template.js',
                  'components.js',
+                 'cursorlike.js',
                  'each.js']);
 });
 
