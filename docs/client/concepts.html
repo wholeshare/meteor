@@ -426,6 +426,8 @@ You can use it yourself to implement new reactive data sources.
 
 <h2 id="livehtml">Live HTML</h2>
 
+XXX No more Meteor.render, modify examples
+
 HTML templating is central to web applications. With Meteor's live
 page update technology, you can render your HTML _reactively_, meaning
 that it will update automatically to track changes in the data used to
@@ -433,6 +435,10 @@ generate it.
 
 This optional feature works with any HTML templating library, or even
 with HTML you generate manually from JavaScript. Here's an example:
+
+    XXX is there some variant of this example that will continue to work?
+        perhaps directly using the render buffer API? or some sort of
+        functional DOM API eg UL({style: ...}, LI("item 1"), LI("item 2")])
 
     var fragment = Meteor.render(
       function () {
@@ -457,6 +463,9 @@ Most of the time, though, you won't call these functions directly
 Handlebars or Jade. The `render` and `renderList` functions are intended
 for people that are implementing new templating systems.
 
+XXX the current version doesn't satisfy this. specifically {{#each}} doesn't
+    batch changes. {{#if}} might. is this ok?
+
 Meteor normally batches up any needed updates and executes them only
 when your code isn't running. That way, you can be sure that the DOM
 won't change out from underneath you. Sometimes you want the opposite
@@ -471,9 +480,11 @@ cleaned up &mdash; their callbacks are torn down, any associated database
 queries are stopped, and they stop updating. For this reason, you never have to
 worry about the [zombie
 templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
-that plague hand-written update logic. To protect your elements from cleanup,
-just make sure that they are on-screen before your code returns to the event loop,
-or before any call you make to [`Deps.flush`](#deps_flush).
+that plague hand-written update logic.
+
+XXX rewrite or edit the following two paragaphs to not refer
+to preserve. also this is a good place to sell how meteor ui
+implements fine-grained updates.
 
 Another thorny problem in hand-written applications is element
 preservation. Suppose the user is typing text into an `<input>`
@@ -496,6 +507,8 @@ attribute changes.
 {{#better_markdown}}
 
 <h2 id="templates">Templates</h2>
+
+XXX go over this whole section.
 
 Meteor makes it easy to use your favorite HTML templating language,
 such as Handlebars or Jade, along with Meteor's live page update
