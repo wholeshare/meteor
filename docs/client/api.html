@@ -1762,11 +1762,13 @@ Example:
 
 <h2 id="templates_api"><span>Templates</span></h2>
 
-XXX go over this whole section.
-
 A template that you declare as `<{{! }}template name="foo"> ... </{{!
-}}template>` can be accessed as the function `Template.foo`, which
-returns a string of HTML when called.
+}}template>` can be accessed as the (XXX: no longer a function)
+function `Template.foo`, which returns a string of HTML when called.
+
+XXX: we need to add a section somewhere explaining how you can
+dynamically render templates. specifically, `{{dstache}}> foo}}` works
+if `foo` is a helper returning the appropriate template object.
 
 The same template may occur many times on the page, and these
 occurrences are called template instances.  Template instances have a
@@ -1777,6 +1779,9 @@ or replaced and should be cleaned up.  You can associate data with a
 template instance, and you can access its DOM nodes when it is in the
 document.
 
+(XXX strip this paragraph, or replace it with a high-level story
+explaining fine-grained updates and when the `rendered` callback is
+called)
 Additionally, Meteor will maintain a template instance and its state
 even if its surrounding HTML is re-rendered into new DOM nodes.  As
 long as the structure of template invocations is the same, Meteor will
@@ -1790,7 +1795,7 @@ They are described below.
 
 {{> api_box template_call}}
 
-When called inside a template helper, the body of `Meteor.render`, or
+(XXX Strip this) When called inside a template helper, the body of `Meteor.render`, or
 other settings where reactive HTML is being generated, the resulting
 HTML is annotated so that it renders as reactive DOM elements.
 Otherwise, the HTML is unadorned and static.
@@ -1799,7 +1804,8 @@ Otherwise, the HTML is unadorned and static.
 {{> api_box template_rendered}}
 
 This callback is called once when an instance of Template.*myTemplate* is
-rendered into DOM nodes and put into the document for the first time, and again
+rendered into DOM nodes and put into the document for the first time,
+(XXX no longer accurate:) and again
 each time any part of the template is re-rendered.
 
 In the body of the callback, `this` is a [template
@@ -1810,6 +1816,7 @@ object.
 
 {{> api_box template_created}}
 
+(XXX fix this sentence due to fine-grained reactivity)
 This callback is called when an invocation of *myTemplate* represents
 a new occurrence of the template and not a re-rendering of an existing
 template instance.  Inside the callback, `this` is the new [template
@@ -1863,6 +1870,7 @@ names:
       return Session.get("foo");
     };
 
+(XXX kill preserve!!!)
 {{> api_box template_preserve}}
 
 You can "preserve" a DOM element during re-rendering, leaving the
@@ -2234,7 +2242,9 @@ catching typing in text fields, while `keydown` and `keyup` can be
 used for arrow keys or modifier keys.
 {{/dtdd}}
 
-{{#dtdd "<code>tap</code>"}} Tap on an element.  On touch-enabled
+{{#dtdd "<code>tap</code>"}} (XXX: we could have a package loading
+the appropriate parts of jQuery mobile for tap and other mobile events)
+Tap on an element.  On touch-enabled
 devices, this is a replacement to `click` that fires immediately.
 These events are synthesized from `touchmove` and `touchend`.
 {{/dtdd}}
@@ -2251,6 +2261,7 @@ browsers.
 
 {{#api_box_inline constant}}
 
+(XXX no more constant)
 You can mark a region of a template as "constant" and not subject to
 re-rendering using the
 `{{dstache}}#constant}}...{{dstache}}/constant}}` block helper.
@@ -2282,6 +2293,8 @@ correctly inside constant regions.
 
 {{#api_box_inline isolate}}
 
+(XXX kill this section, perhaps replacing it with an explanation on
+how fine-grained updates work)
 Each template runs as its own reactive computation.  When the template
 accesses a reactive data source, such as by calling `Session.get` or
 making a database query, this establishes a data dependency that will

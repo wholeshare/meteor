@@ -922,7 +922,7 @@ Template.api.render = {
   id: "meteor_render",
   name: "Meteor.render(htmlFunc)",
   locus: "Client",
-  descr: ["Create DOM nodes that automatically update themselves as data changes."],
+  descr: ["(XXX kill this) Create DOM nodes that automatically update themselves as data changes."],
   args: [
     {name: "htmlFunc",
      type: "Function returning a string of HTML",
@@ -932,7 +932,7 @@ Template.api.render = {
 
 Template.api.renderList = {
   id: "meteor_renderlist",
-  name: "Meteor.renderList(observable, docFunc, [elseFunc])",
+  name: "(XXX kill this) Meteor.renderList(observable, docFunc, [elseFunc])",
   locus: "Client",
   descr: ["Create DOM nodes that automatically update themselves based on the results of a database query."],
   args: [
@@ -952,7 +952,7 @@ Template.api.renderList = {
 
 Template.api.eventmaps = {
   id: "eventmaps",
-  name: "Event Maps"
+  name: "Event Maps (XXX: we could just point to the jQuery docs here instead)"
 };
 
 Template.api.constant = {
@@ -1664,7 +1664,7 @@ Template.api.template_call = {
   id: "template_call",
   name: "Template.<em>myTemplate</em>([data])",
   locus: "Client",
-  descr: ["Call a template function by name to produce HTML."],
+  descr: ["(XXX strip this) Call a template function by name to produce HTML."],
   args: [
     {name: "data",
      type: "Object",

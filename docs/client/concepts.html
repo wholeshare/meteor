@@ -463,8 +463,8 @@ Most of the time, though, you won't call these functions directly
 Handlebars or Jade. The `render` and `renderList` functions are intended
 for people that are implementing new templating systems.
 
-XXX the current version doesn't satisfy this. specifically {{#each}} doesn't
-    batch changes. {{#if}} might. is this ok?
+XXX the current version doesn't satisfy this. specifically {{dstache}}#each}} doesn't
+    batch changes. {{dstache}}#if}} might. is this ok?
 
 Meteor normally batches up any needed updates and executes them only
 when your code isn't running. That way, you can be sure that the DOM
@@ -508,17 +508,16 @@ attribute changes.
 
 <h2 id="templates">Templates</h2>
 
-XXX go over this whole section.
-
+XXX what's our new exact new story about other templating languages?
 Meteor makes it easy to use your favorite HTML templating language,
 such as Handlebars or Jade, along with Meteor's live page update
 technology. Just write your template as you normally would, and Meteor
 will take care of making it update in realtime.
 
 To use this feature, create a file in your project with the `.html`
-extension. In the file, make a `<template>` tag and give it a
-`name` attribute. Put the template contents inside the tag. Meteor
-will precompile the template, ship it down to the client, and make it
+extension. In the file, make a `<template>` tag and give it a `name`
+attribute. Put the template contents inside the tag. Meteor will
+precompile the template, ship it down to the client, and make it
 available as a function on the global `Template` object.
 
 {{#note}}
@@ -529,6 +528,7 @@ documentation](http://www.handlebarsjs.com/) and [Meteor Handlebars
 extensions](https://github.com/meteor/meteor/wiki/Handlebars).
 {{/note}}
 
+XXX(no longer true:)
 A template with a `name` of `hello` is rendered by calling the
 function `Template.hello`, passing any data for the template:
 
@@ -541,6 +541,7 @@ function `Template.hello`, passing any data for the template:
     > Template.hello({first: "Alyssa", last: "Hacker"});
      => "<div class="greeting">Hello there, Alyssa Hacker!</div>"
 
+XXX(no longer true:)
 This returns a string. To use the template along with the [`Live
 HTML`](#livehtml) system, and get DOM elements that update
 automatically in place, use [`Meteor.render`](#meteor_render):
@@ -593,6 +594,11 @@ in `this`:
     </{{! }}template>
 
 {{#note}}
+
+(XXX helpers as the first argument to block helpers no
+ longer can be passed arguments. instead, in the future we will allow
+ for expressions within an {{dstache}}#if}} directive)
+
 Handlebars note: `{{dstache}}#if leagueIs "junior"}}` is
 allowed because of a Meteor extension that allows nesting a helper
 in a block helper. (Both `if` and `leagueIs` are
