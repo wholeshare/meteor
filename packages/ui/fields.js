@@ -99,7 +99,16 @@ _extend(UI.Component, {
     if (typeof result === 'function') {
       return function (/*arguments*/) {
         var data = getComponentData(self);
-        return result.apply(data, arguments);
+        var args = Array.prototype.slice.call(arguments, 0); // to array
+        updateTemplateInstance(self);
+
+        if (args[args.length - 1] instanceof Object) {
+          args[args.length - 1].templateInstance = self.templateInstance;
+        } else {
+          args.push({templateInstance: self.templateInstance});
+        }
+
+        return result.apply(data, args);
       };
     } else {
       return result;
