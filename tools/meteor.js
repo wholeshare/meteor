@@ -3,6 +3,15 @@ var PROFILE_REQUIRE = false;
 if (PROFILE_REQUIRE)
   require('./profile-require.js').start();
 
+if (process.env.EMACS == "t") {
+  // Hack to set stdin to be blocking, reversing node's normal setting of
+  // O_NONBLOCK on the evaluation of process.stdin (because Node unblocks stdio
+  // when forking). This fixes execution of Mongo from within Emacs shell.
+  process.stdin;
+  var child_process = require('child_process');
+  child_process.spawn('true', [], {stdio: 'inherit'});
+}
+
 var Fiber = require('fibers');
 Fiber(function () {
 
@@ -24,6 +33,7 @@ Fiber(function () {
   var httpHelpers = require('./http-helpers.js');
   var auth = require('./auth.js');
   var url = require('url');
+  var config = require('./config.js');
 
   var Future = require('fibers/future');
 
@@ -897,8 +907,10 @@ Fiber(function () {
         mongoUrl = fut.wait();
 
       } else {
-        var site = argv._[0];
         // remote mode
+        var site = argv._[0];
+        config.printUniverseBanner();
+
         if (context.galaxy) {
           mongoUrl = deployGalaxy.temporaryMongoUrl({
             app: site,
@@ -912,7 +924,7 @@ Fiber(function () {
         console.log(mongoUrl);
       } else {
         process.stdin.pause();
-        deploy.run_mongo_shell(mongoUrl);
+        deploy.runMongoShell(mongoUrl);
       }
     })
   });
@@ -921,11 +933,7 @@ Fiber(function () {
     name: "deploy",
     help: "Deploy this project to Meteor",
     argumentParser: function (opt) {
-      opt.alias('password', 'P')
-        .boolean('password')
-        .boolean('P')
-        .describe('password', 'set a password for this deployment')
-        .alias('delete', 'D')
+      opt.alias('delete', 'D')
         .boolean('delete')
         .boolean('D')
         .describe('delete', "permanently delete this deployment")
@@ -939,7 +947,7 @@ Fiber(function () {
       // Shouldn't be documented until the Galaxy release
       //.describe('admin', 'Marks the application as an admin app, it will be available in Galaxy admin interface.')
         .usage(
-          "Usage: meteor deploy <site> [--password] [--settings settings.json] [--debug] [--delete]\n" +
+          "Usage: meteor deploy <site> [--settings settings.json] [--debug] [--delete]\n" +
             "\n" +
             "Deploys the project in your current directory to Meteor's servers.\n" +
             "\n" +
@@ -958,11 +966,7 @@ Fiber(function () {
             "unset Meteor.settings, pass an empty settings file.\n" +
             "\n" +
             "The --delete flag permanently removes a deployed application, including\n" +
-            "all of its stored data.\n" +
-            "\n" +
-            "The --password flag sets an administrative password for the domain. Once\n" +
-            "set, any subsequent 'deploy', 'logs', or 'mongo' command will prompt for\n" +
-            "the password. You can change the password with a second 'deploy' command.\n"
+            "all of its stored data.\n"
           // Shouldn't be documented until the Galaxy release
           //"\n" +
           //"The --admin flag marks application as administrative to Galaxy interface.\n" +
@@ -974,12 +978,13 @@ Fiber(function () {
         showUsage();
 
       var site = argv._[0];
+      config.printUniverseBanner();
 
       if (argv.delete) {
         if (context.galaxy)
           deployGalaxy.deleteApp(site, context);
         else
-          deploy.delete_app(site);
+          deploy.deleteApp(site);
       } else {
         var starball = argv.star;
         // We don't need to be in an app if we're not going to run the bundler.
@@ -1010,11 +1015,25 @@ Fiber(function () {
             admin: argv.admin
           });
         } else {
-          deploy.deployCmd({
-            url: site,
+          if (argv.password) {
+            process.stderr.write(
+"Setting passwords on apps is no longer supported. Now there are\n" +
+"user accounts and your apps are associated with your account so that\n" +
+"only you (and people you designate) can access them. See the\n" +
+"'meteor claim' and 'meteor authorized' commands.\n");
+            process.exit(1)
+          }
+
+          if (! auth.isLoggedIn()) {
+            // XXX so log them in ..!
+            process.stderr.write("You must be logged in to deploy an app.\n");
+            process.exit(1);
+          }
+
+          deploy.bundleAndDeploy({
             appDir: context.appDir,
+            site: site,
             settings: settings,
-            setPassword: !!argv.password,
             bundleOptions: {
               nodeModulesMode: 'skip',
               minify: !argv.debug,
@@ -1044,6 +1063,7 @@ Fiber(function () {
       // We don't use galaxyCommand here because we want the tunnel to stay
       // open (galaxyCommand closes the tunnel as soon as the command finishes
       // running). The tunnel will be cleaned up when the process exits.
+      config.printUniverseBanner();
       var site = qualifySitename(argv._[0]);
       var tunnel = prepareForGalaxy(site, context, argv["ssh-identity"]);
       var useGalaxy = !!context.galaxy;
@@ -1060,6 +1080,97 @@ Fiber(function () {
       } else {
         deploy.logs(site);
       }
+    }
+  });
+
+  Commands.push({
+    name: "authorized",
+    help: "View or change authorized users for a site",
+    argumentParser: function (opt) {
+      opt.alias('add', 'a')
+        .describe('add', "add an authorized user")
+        .alias('remove', 'r')
+        .describe('remove', "remove an authorized user")
+        .alias('list', 'l')
+        .describe('list', "list authorized users (the default)")
+        .usage(
+"Usage: meteor authorized <site> [--list]\n" +
+"       meteor authorized <site> --add <username>\n" +
+"       meteor authorized <site> --remove <username>\n" +
+"\n" +
+"Without an argument (or with --list), list the users that are\n"+
+"administrators for a particular site that was deployed with 'meteor deploy'\n"+
+"\n" +
+"With --add, add an authorized user to a site. Use this to give your\n" +
+"collaborators the ability to work with your sites.\n" +
+"\n" +
+"With --remove, remove an authorized user from a site. You cannot remove\n" +
+"yourself. (Ask someone else who is an authorized user to do it.)\n" +
+"\n" +
+"You can only add or remove one authorized user at a time.\n");
+    },
+    func: function (argv, showUsage) {
+      if (argv._.length !== 1)
+        showUsage();
+
+      if (_.isArray(argv.add) ||
+          _.isArray(argv.remove) ||
+          (argv.add && argv.remove)) {
+        process.stderr.write(
+          "Sorry, you can only add or remove one user at a time.\n");
+        process.exit(1);
+      }
+
+      if ((argv.add || argv.remove) && argv.list) {
+        process.stderr.write(
+"Sorry, you can't change the users at the same time as you're listing them.\n");
+        process.exit(1);
+      }
+
+      config.printUniverseBanner();
+      var site = qualifySitename(argv._[0]);
+
+      if (! auth.isLoggedIn()) {
+        process.stderr.write(
+          "You must be logged in for that. Try 'meteor login'.\n");
+        process.exit(1);
+      }
+
+      if (argv.add)
+        deploy.changeAuthorized(site, "add", argv.add);
+      else if (argv.remove)
+        deploy.changeAuthorized(site, "remove", argv.remove);
+      else
+        deploy.listAuthorized(site);
+    }
+  });
+
+  Commands.push({
+    name: "claim",
+    help: "Claim a site deployed with an old Meteor version into your account",
+    argumentParser: function (opt) {
+      opt.usage(
+"Usage: meteor claim <site>\n" +
+"\n" +
+"If you deployed a site with an old version of Meteor that did not have\n" +
+"support for developer accounts, you can use this command to claim that\n" +
+"site into your account. If you had set a password on the site you will\n" +
+"be prompted for it one last time.\n");
+    },
+    func: function (argv, showUsage) {
+      if (argv._.length !== 1)
+        showUsage();
+
+      config.printUniverseBanner();
+      var site = qualifySitename(argv._[0]);
+
+      if (! auth.isLoggedIn()) {
+        process.stderr.write(
+          "You must be logged in to claim sites. Try 'meteor login'.\n");
+        process.exit(1);
+      }
+
+      deploy.claim(site);
     }
   });
 
@@ -1172,18 +1283,17 @@ Fiber(function () {
                           argv['driver-package'] || 'test-in-browser');
 
       if (argv.deploy) {
-        var deployOptions = {
-          site: argv.deploy
-        };
-        deploy.deployToServer(context.appDir, {
-          nodeModulesMode: 'skip',
-          testPackages: testPackages,
-          minify: argv.production,
-          releaseStamp: context.releaseVersion,
-          library: context.library
-        }, {
+        deploy.bundleAndDeploy({
+          appDir: context.appDir,
           site: argv.deploy,
-          settings: argv.settings && runner.getSettings(argv.settings)
+          settings: argv.settings && runner.getSettings(argv.settings),
+          bundleOptions: {
+            nodeModulesMode: 'skip',
+            testPackages: testPackages,
+            minify: argv.production,
+            releaseStamp: context.releaseVersion,
+            library: context.library
+          }
         });
       } else {
         runner.run(context, {
